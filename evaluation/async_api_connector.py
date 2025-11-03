@@ -26,6 +26,8 @@ from tenacity import (
 from transformers import AutoTokenizer
 from vertexai.preview.tokenization import get_tokenizer_for_model
 
+from .image_helper import ImagePayload
+
 DEFAULT_TOKENIZER_MAPPING = {
     "gemini": "google",
     "vllm": "huggingface",
@@ -182,7 +184,7 @@ class APIConnector:
     async def generate_response(
         self,
         system_prompt: str,
-        user_prompt: Union[str, List[str]],
+        user_prompt: Union[str, List[str], ImagePayload],
         max_tokens: int = 100,
         temperature: float = 0.0,
         top_p: float = 1.0,
@@ -210,6 +212,10 @@ class APIConnector:
         if isinstance(user_prompt, list):
             for prompt in user_prompt:
                 messages.append({"role": "user", "content": prompt})
+        elif isinstance(user_prompt, ImagePayload):
+            messages.append(
+                {"role": "user", "content": user_prompt.to_message_content()}
+            )
         else:
             messages.append({"role": "user", "content": user_prompt})
         if (
