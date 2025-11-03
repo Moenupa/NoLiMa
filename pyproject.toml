@@ -17,3 +17,6 @@ dependencies = [
     "transformers==4.46.1",
     "vllm>=0.5.0.post1,<=0.11.0",
 ]
+
+[tool.ruff.format]
+exclude = ["*.ipynb"]
