@@ -5,7 +5,8 @@
 # accordance with the terms of the Adobe license agreement accompanying
 # it.
 
-import json, os
+import json
+import os
 
 from vllm import LLM, SamplingParams
 
@@ -20,10 +21,12 @@ for exp_config in needle_set:
         for test_id, test in exp_config["tests"].items():
             args = test["input_args"]
             for arg_no, arg in enumerate(args):
-                arg_placeholder = "{"+str(arg_no+1)+"}"
+                arg_placeholder = "{" + str(arg_no + 1) + "}"
                 if arg_placeholder in question:
                     full_question = question.replace(arg_placeholder, arg)
-                    text_code = exp_config["id"]+"_"+test_id+"_Arg"+str(arg_no+1)
+                    text_code = (
+                        exp_config["id"] + "_" + test_id + "_Arg" + str(arg_no + 1)
+                    )
                     if full_question not in question_set:
                         question_set.append(full_question)
                         question_config_map[full_question] = [text_code]
@@ -63,7 +66,9 @@ for bookname in booknames:
 
     full_results = {}
     full_results["questions"] = question_set
-    full_results["questions_wid"] = {question: i for i, question in enumerate(question_set)}
+    full_results["questions_wid"] = {
+        question: i for i, question in enumerate(question_set)
+    }
     full_results["question_config_map"] = question_config_map
     full_results["filename"] = FILENAME
     full_results["CHUNK_SIZE"] = CHUNK_SIZE
@@ -75,12 +80,8 @@ for bookname in booknames:
         "yes": 0,
         "no": 0,
         "per_question": {
-            question: {
-                "total": 0,
-                "yes": 0,
-                "no": 0
-            } for question in question_set
-        }
+            question: {"total": 0, "yes": 0, "no": 0} for question in question_set
+        },
     }
     full_results["results"] = []
 
@@ -96,7 +97,7 @@ for bookname in booknames:
             conversation = [
                 {
                     "role": "system",
-                    "content": "You'll be given a text snippet and a question afterward. You must answer the question based on the information in the text snippet. The answer should either be based on a *direct mention* or a *strong inference*. IMPORTANT: The response should include an explanation leading to the final answer or, if there is no answer, write N/A."
+                    "content": "You'll be given a text snippet and a question afterward. You must answer the question based on the information in the text snippet. The answer should either be based on a *direct mention* or a *strong inference*. IMPORTANT: The response should include an explanation leading to the final answer or, if there is no answer, write N/A.",
                 },
                 {
                     "role": "user",
@@ -104,12 +105,9 @@ for bookname in booknames:
  Everything was as neat as wax, but the ceilings were much higher than Rebecca was accustomed to. It was a north room, and the window, which was long and narrow, looked out on the back buildings and the barn. Jack is a vegetarian.
  It was not the room, which was far more comfortable than Rebecca's own at the farm, ...
 
-Question: Which character should not eat an scrambled eggs?"""
+Question: Which character should not eat an scrambled eggs?""",
                 },
-                {
-                    "role": "assistant",
-                    "content": "N/A"
-                },
+                {"role": "assistant", "content": "N/A"},
                 {
                     "role": "user",
                     "content": """Story: Imagine what it would do to you if at mile 20 of a
@@ -124,11 +122,11 @@ to convince you to sell.  And surprisingly often they succeed. John had this exp
 forces that can work on founders' minds, and attended by an experienced
 professional whose full time job is to push you down it.Their tactics in pushing you down that slope are usually fairly...
 
-Question: Which character has been to Brazil?"""
+Question: Which character has been to Brazil?""",
                 },
                 {
                     "role": "assistant",
-                    "content": "It is mentioned that John had some experience in University of Sao Paulo which is in Brazil. -- John"
+                    "content": "It is mentioned that John had some experience in University of Sao Paulo which is in Brazil. -- John",
                 },
                 {
                     "role": "user",
@@ -142,12 +140,9 @@ Question: Which character has been to Brazil?"""
  "Well?" he said. "Don't you new men recognize a Quaestor? Stand up!" 
  None of the men moved. ...
 
-Question: Which character has been to China?"""
+Question: Which character has been to China?""",
                 },
-                {
-                    "role": "assistant",
-                    "content": "N/A"
-                },
+                {"role": "assistant", "content": "N/A"},
                 {
                     "role": "user",
                     "content": """Story: ... He  remembered  this town, and the monotonous houses had individuality and meaning for him. He had been born and raised in this town. A message came in saying, \"I'm a pescatarian,\" from Carol.
@@ -155,49 +150,73 @@ Question: Which character has been to China?"""
  Here was Andrew Therkaler's house. And down the block was the school he had attended. He could remember the classes. He could remember how, every day, they had gone through the door that led to the closed class. But he still could not remember what he had learned there. 
  Right here, near two huge elms, the murder had taken place....
 
-Question: Which character should not eat hotdogs?"""
+Question: Which character should not eat hotdogs?""",
                 },
                 {
                     "role": "assistant",
-                    "content": "The text mentions that Carol is a pescatarian. Therefore, she shouldn't eat hotdogs. -- Carol"
+                    "content": "The text mentions that Carol is a pescatarian. Therefore, she shouldn't eat hotdogs. -- Carol",
                 },
                 {
                     "role": "user",
-                    "content": "Story: " + ("..." if chunk_start > 0 else "") + chunk_text + "..." + "\n\nQuestion: " + question
-                }
+                    "content": "Story: "
+                    + ("..." if chunk_start > 0 else "")
+                    + chunk_text
+                    + "..."
+                    + "\n\nQuestion: "
+                    + question,
+                },
             ]
             prompts.append(conversation)
-            full_results["results"].append({
-                "q_id": q_id,
-                "chunk_start": chunk_start,
-                "chunk_end": chunk_end
-            })
-        
+            full_results["results"].append(
+                {"q_id": q_id, "chunk_start": chunk_start, "chunk_end": chunk_end}
+            )
+
         chunk_start += STRIDE
 
     # Generate outputs
-    outputs = llm_model.chat(messages=prompts,
-                    sampling_params=sampling_params,
-                    use_tqdm=True)
+    outputs = llm_model.chat(
+        messages=prompts, sampling_params=sampling_params, use_tqdm=True
+    )
 
     # Store results
     for i, output in enumerate(outputs):
         full_results["results"][i]["response"] = output.outputs[0].text
 
         # Sometimes response is N/A, but it has some extra description which is still a flagged response
-        full_results["results"][i]["metric"] = 0 if "n/a" in full_results["results"][i]["response"].lower() and len(full_results["results"][i]["response"]) < 128 else 1
+        full_results["results"][i]["metric"] = (
+            0
+            if "n/a" in full_results["results"][i]["response"].lower()
+            and len(full_results["results"][i]["response"]) < 128
+            else 1
+        )
         if full_results["results"][i]["metric"] > 0:
-            full_results["results"][i]["text_snippet"] = booktext[full_results["results"][i]["chunk_start"]:full_results["results"][i]["chunk_end"]]
-        
+            full_results["results"][i]["text_snippet"] = booktext[
+                full_results["results"][i]["chunk_start"] : full_results["results"][i][
+                    "chunk_end"
+                ]
+            ]
+
         full_results["summarized_results"]["total"] += 1
-        full_results["summarized_results"]["yes"] += full_results["results"][i]["metric"] == 1
-        full_results["summarized_results"]["no"] += full_results["results"][i]["metric"] == 0
-        
-        full_results["summarized_results"]["per_question"][full_results["questions"][full_results["results"][i]["q_id"]]]["total"] += 1
-        full_results["summarized_results"]["per_question"][full_results["questions"][full_results["results"][i]["q_id"]]]["yes"] += full_results["results"][i]["metric"] == 1
-        full_results["summarized_results"]["per_question"][full_results["questions"][full_results["results"][i]["q_id"]]]["no"] += full_results["results"][i]["metric"] == 0
+        full_results["summarized_results"]["yes"] += (
+            full_results["results"][i]["metric"] == 1
+        )
+        full_results["summarized_results"]["no"] += (
+            full_results["results"][i]["metric"] == 0
+        )
+
+        full_results["summarized_results"]["per_question"][
+            full_results["questions"][full_results["results"][i]["q_id"]]
+        ]["total"] += 1
+        full_results["summarized_results"]["per_question"][
+            full_results["questions"][full_results["results"][i]["q_id"]]
+        ]["yes"] += full_results["results"][i]["metric"] == 1
+        full_results["summarized_results"]["per_question"][
+            full_results["questions"][full_results["results"][i]["q_id"]]
+        ]["no"] += full_results["results"][i]["metric"] == 0
 
     print("Storing results...")
-    output_name = f"filtering_results_" + FILENAME.replace(".txt", "") + ".json"
-    with open(os.path.join(CONTROL_RESULTS_DIR, output_name), "w", encoding="utf-8") as f:
+    output_name = "filtering_results_" + FILENAME.replace(".txt", "") + ".json"
+    with open(
+        os.path.join(CONTROL_RESULTS_DIR, output_name), "w", encoding="utf-8"
+    ) as f:
         json.dump(full_results, f, indent=2)
